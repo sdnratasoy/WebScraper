@@ -23,7 +23,6 @@ func main() {
 	fmt.Println("\n--- AŞAMA 1: HTML Bilgisi ---")
 	fmt.Println("->Bağlantı kuruluyor:", targetURL)
 
-	// HTTP durum kodu kontrolü
 	resp, err := http.Get(targetURL)
 	if err != nil {
 		fmt.Println("[X] Bağlantı hatası:", err)
@@ -55,7 +54,7 @@ func main() {
 
 	var htmlContent string
 	var screenshotBuf []byte
-	
+
 	err = chromedp.Run(ctx,
 		chromedp.Navigate(targetURL),
 		chromedp.WaitReady("body"),
