@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"os"
 	"time"
 	"github.com/chromedp/chromedp"
@@ -22,6 +23,30 @@ func main() {
 	fmt.Println("\n--- AŞAMA 1: HTML Bilgisi ---")
 	fmt.Println("->Bağlantı kuruluyor:", targetURL)
 
+	// HTTP durum kodu kontrolü
+	resp, err := http.Get(targetURL)
+	if err != nil {
+		fmt.Println("[X] Bağlantı hatası:", err)
+		os.Exit(1)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == 404 {
+		fmt.Println("[X] Hata: 404 Sayfa Bulunamadı")
+		fmt.Println("Belirtilen sayfa mevcut değil.")
+		os.Exit(1)
+	} else if resp.StatusCode >= 400 && resp.StatusCode < 500 {
+		fmt.Printf("[X] Hata: %d İstemci Hatası\n", resp.StatusCode)
+		fmt.Println("İsteğinizde bir sorun var.")
+		os.Exit(1)
+	} else if resp.StatusCode >= 500 {
+		fmt.Printf("[X] Hata: %d Sunucu Hatası\n", resp.StatusCode)
+		fmt.Println("Sunucu yanıt vermiyor veya bir hata oluştu.")
+		os.Exit(1)
+	}
+
+	fmt.Printf("[+] Bağlantı başarılı (%d %s)\n", resp.StatusCode, http.StatusText(resp.StatusCode))
+
 	ctx, cancel := chromedp.NewContext(context.Background())
 	defer cancel()
 
@@ -30,19 +55,17 @@ func main() {
 
 	var htmlContent string
 	var screenshotBuf []byte
-
-	err := chromedp.Run(ctx,
+	
+	err = chromedp.Run(ctx,
 		chromedp.Navigate(targetURL),
 		chromedp.WaitReady("body"),
 		chromedp.OuterHTML("html", &htmlContent),
 	)
 
 	if err != nil {
-		fmt.Println("[X] Bağlantı başarısız!")
+		fmt.Println("[X] Sayfa yüklenirken hata oluştu:", err)
 		os.Exit(1)
 	}
-
-	fmt.Println("[+] Bağlantı başarılı (200 OK)")
 
 	htmlFileName := "site.html"
 	os.WriteFile(htmlFileName, []byte(htmlContent), 0644)
